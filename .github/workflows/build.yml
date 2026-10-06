@@ -11,38 +11,86 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Get the project files
       - name: Checkout source
         uses: actions/checkout@v4
 
+      # 2. Install Java 17
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle 8.7
+      # 3. Install Gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      - name: Check project files
+      # 4. Configure Android Gradle Plugin
+      - name: Configure Android Gradle
+        shell: bash
         run: |
-          echo "Project root:"
-          ls -la
-          echo "App directory:"
-          ls -la app
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
 
+              plugins {
+                  id 'com.android.application' version '8.6.1'
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = "Agrilink"
+          include ':app'
+          EOF
+
+      # 5. Create a clean root Gradle configuration
+      - name: Configure root build.gradle
+        shell: bash
+        run: |
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.6.1' apply false
+          }
+          EOF
+
+      # 6. Make sure Android SDK is available
+      - name: Set Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT"
+          yes | sdkmanager --licenses || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      # 7. Build a DEBUG APK
+      # Debug APK is automatically signed and can be installed on your phone.
       - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace
+        run: |
+          gradle clean
+          gradle assembleDebug --stacktrace
 
+      # 8. Check that the APK exists
       - name: Find APK
         run: |
-          echo "Searching for APK files..."
-          find . -type f -name "*.apk" -print
+          echo "APK files found:"
+          find app/build/outputs -type f -name "*.apk" -print
 
-      - name: Upload APK
+      # 9. Upload the installable APK
+      - name: Upload Agrilink APK
         uses: actions/upload-artifact@v4
         with:
           name: Agrilink-APK
-          path: '**/*.apk'
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
