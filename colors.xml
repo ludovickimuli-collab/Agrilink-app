@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="agrilink_green">#0B5D35</color>
+    <color name="agrilink_light_green">#6EAA18</color>
+    <color name="agrilink_bg">#F7FAF5</color>
+    <color name="agrilink_card">#FFFFFF</color>
+    <color name="agrilink_text">#183126</color>
+    <color name="agrilink_muted">#66756D</color>
+    <color name="agrilink_gold">#D9A441</color>
+</resources>
