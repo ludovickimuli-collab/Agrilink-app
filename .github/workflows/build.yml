@@ -1,0 +1,267 @@
+name: Build Agrilink APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Create Android project
+        shell: bash
+        run: |
+          mkdir -p app/src/main/java/com/agrilink/app
+          mkdir -p app/src/main/res/values
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = "Agrilink"
+          include(":app")
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.6.1' apply false
+          }
+          EOF
+
+          cat > gradle.properties <<'EOF'
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.agrilink.app'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.agrilink.app'
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+          EOF
+
+          cat > app/src/main/res/values/colors.xml <<'EOF'
+          <resources>
+              <color name="agrilink_green">#2E7D32</color>
+              <color name="agrilink_dark">#145A32</color>
+              <color name="agrilink_light">#8BC34A</color>
+              <color name="agrilink_background">#F7FBF4</color>
+              <color name="white">#FFFFFF</color>
+              <color name="black">#111111</color>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/values/styles.xml <<'EOF'
+          <resources>
+              <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:colorAccent">#8BC34A</item>
+                  <item name="android:navigationBarColor">#145A32</item>
+                  <item name="android:statusBarColor">#145A32</item>
+                  <item name="android:windowLightStatusBar">false</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <application
+                  android:allowBackup="true"
+                  android:label="Agrilink"
+                  android:theme="@style/AppTheme"
+                  android:supportsRtl="true">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:screenOrientation="portrait"
+                      android:exported="true">
+
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+
+                  </activity>
+
+              </application>
+
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/agrilink/app/MainActivity.java <<'EOF'
+          package com.agrilink.app;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.view.Gravity;
+          import android.view.View;
+          import android.widget.Button;
+          import android.widget.LinearLayout;
+          import android.widget.ScrollView;
+          import android.widget.TextView;
+          import android.widget.Toast;
+
+          public class MainActivity extends Activity {
+
+              int green = Color.rgb(46, 125, 50);
+              int darkGreen = Color.rgb(20, 90, 50);
+              int lightGreen = Color.rgb(139, 195, 74);
+              int background = Color.rgb(247, 251, 244);
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  showHome();
+              }
+
+              TextView text(String value, float size, int color, boolean bold) {
+                  TextView t = new TextView(this);
+                  t.setText(value);
+                  t.setTextSize(size);
+                  t.setTextColor(color);
+                  t.setGravity(Gravity.CENTER);
+                  if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+                  t.setPadding(12, 12, 12, 12);
+                  return t;
+              }
+
+              Button menuButton(String title, String message) {
+                  Button b = new Button(this);
+                  b.setText(title);
+                  b.setTextSize(16);
+                  b.setTextColor(Color.WHITE);
+                  b.setAllCaps(false);
+                  b.setBackgroundColor(green);
+
+                  LinearLayout.LayoutParams p =
+                          new LinearLayout.LayoutParams(
+                                  LinearLayout.LayoutParams.MATCH_PARENT,
+                                  65);
+                  p.setMargins(20, 8, 20, 8);
+                  b.setLayoutParams(p);
+
+                  b.setOnClickListener(v ->
+                          Toast.makeText(this, message, Toast.LENGTH_SHORT).show());
+
+                  return b;
+              }
+
+              void showHome() {
+                  ScrollView scroll = new ScrollView(this);
+                  scroll.setBackgroundColor(background);
+
+                  LinearLayout main = new LinearLayout(this);
+                  main.setOrientation(LinearLayout.VERTICAL);
+                  main.setGravity(Gravity.CENTER_HORIZONTAL);
+                  main.setPadding(15, 25, 15, 25);
+
+                  TextView logo = text("🌱", 55, green, false);
+                  main.addView(logo);
+
+                  TextView title = text("Agrilink", 42, darkGreen, true);
+                  main.addView(title);
+
+                  TextView slogan = text(
+                          "DETECT  •  GROW  •  SELL  •  THRIVE",
+                          14,
+                          green,
+                          true);
+                  main.addView(slogan);
+
+                  TextView description = text(
+                          "Smart Farming. Sustainable Future. Food Security for All.",
+                          16,
+                          Color.DKGRAY,
+                          false);
+                  description.setPadding(25, 10, 25, 25);
+                  main.addView(description);
+
+                  main.addView(menuButton(
+                          "🔍  AI CROP DIAGNOSIS",
+                          "AI Crop Diagnosis coming next"));
+
+                  main.addView(menuButton(
+                          "🌱  GROW",
+                          "Crop growing guides coming next"));
+
+                  main.addView(menuButton(
+                          "🛒  MARKETPLACE",
+                          "Agrilink Marketplace coming next"));
+
+                  main.addView(menuButton(
+                          "👨‍🌾  MY FARM",
+                          "Your farm dashboard coming next"));
+
+                  TextView future = text(
+                          "AI Diagnosis  •  Eco-Friendly  •  E-Commerce",
+                          13,
+                          darkGreen,
+                          true);
+                  future.setPadding(10, 30, 10, 10);
+                  main.addView(future);
+
+                  TextView version = text(
+                          "Agrilink v1.0",
+                          12,
+                          Color.GRAY,
+                          false);
+                  main.addView(version);
+
+                  scroll.addView(main);
+                  setContentView(scroll);
+              }
+          }
+          EOF
+
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Agrilink-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
